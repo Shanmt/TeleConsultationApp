@@ -1,4 +1,4 @@
-package com.teleconsultationapp
+package com.nina.teleclinic365
 
 import android.app.Application
 import com.facebook.react.PackageList

@@ -14,7 +14,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import { CustomButton } from '../components/CustomButton';
 import { theme } from '../constants/theme';
 import { RootStackParamList } from '../types/navigation';
-import { User } from '../types/user';
+import { useAuth } from '../contexts/AuthContext';
 
 type ProfileScreenNavigationProp = StackNavigationProp<
   RootStackParamList,
@@ -26,28 +26,29 @@ interface Props {
 }
 
 export const Profile: React.FC<Props> = ({ navigation }) => {
+  const { user, userProfile, signOut } = useAuth();
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [darkModeEnabled, setDarkModeEnabled] = useState(false);
 
-  // Mock user data - in real app, fetch from context/API
-  const user: User = {
-    id: 'user-1',
-    email: 'john.doe@example.com',
-    firstName: 'John',
-    lastName: 'Doe',
-    phone: '+1 (555) 123-4567',
-    dateOfBirth: '1990-05-15',
-    gender: 'male',
-    address: {
-      street: '123 Main Street',
-      city: 'New York',
-      state: 'NY',
-      zipCode: '10001',
-      country: 'USA',
-    },
-    profileImage: 'https://example.com/profile.jpg',
-    createdAt: '2023-01-01T00:00:00Z',
-    updatedAt: '2024-01-01T00:00:00Z',
+  const handleSignOut = async () => {
+    Alert.alert(
+      'Sign Out',
+      'Are you sure you want to sign out?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Sign Out',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await signOut();
+            } catch (error: any) {
+              Alert.alert('Error', 'Failed to sign out. Please try again.');
+            }
+          },
+        },
+      ]
+    );
   };
 
   const profileMenuItems = [
@@ -112,7 +113,6 @@ export const Profile: React.FC<Props> = ({ navigation }) => {
       title: 'Privacy Policy',
       subtitle: 'Read our privacy policy',
       icon: 'shield-checkmark',
-      type: 'button',
       onPress: () => Alert.alert('Info', 'Privacy policy feature coming soon!'),
     },
     {
@@ -120,7 +120,6 @@ export const Profile: React.FC<Props> = ({ navigation }) => {
       title: 'Terms of Service',
       subtitle: 'Read our terms of service',
       icon: 'document-text',
-      type: 'button',
       onPress: () => Alert.alert('Info', 'Terms of service feature coming soon!'),
     },
     {
@@ -128,44 +127,9 @@ export const Profile: React.FC<Props> = ({ navigation }) => {
       title: 'Help & Support',
       subtitle: 'Get help and contact support',
       icon: 'help-circle',
-      type: 'button',
       onPress: () => navigation.navigate('ContactUs'),
     },
   ];
-
-  const handleLogout = () => {
-    Alert.alert(
-      'Logout',
-      'Are you sure you want to logout?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Logout', 
-          style: 'destructive',
-          onPress: () => {
-            Alert.alert('Success', 'Logged out successfully');
-            // TODO: Implement actual logout logic
-          }
-        },
-      ]
-    );
-  };
-
-  const renderProfileHeader = () => (
-    <View style={styles.profileHeader}>
-      <View style={styles.profileImageContainer}>
-        <View style={styles.profileImage}>
-          <Ionicons name="person" size={40} color={theme.colors.primary} />
-        </View>
-        <TouchableOpacity style={styles.editImageButton}>
-          <Ionicons name="camera" size={16} color={theme.colors.background} />
-        </TouchableOpacity>
-      </View>
-      <Text style={styles.userName}>{user.firstName} {user.lastName}</Text>
-      <Text style={styles.userEmail}>{user.email}</Text>
-      <Text style={styles.userPhone}>{user.phone}</Text>
-    </View>
-  );
 
   const renderMenuItem = (item: any) => (
     <TouchableOpacity
@@ -175,12 +139,12 @@ export const Profile: React.FC<Props> = ({ navigation }) => {
       disabled={item.type === 'switch'}
     >
       <View style={styles.menuItemLeft}>
-        <View style={styles.menuIcon}>
+        <View style={styles.menuItemIcon}>
           <Ionicons name={item.icon as any} size={20} color={theme.colors.primary} />
         </View>
-        <View style={styles.menuContent}>
-          <Text style={styles.menuTitle}>{item.title}</Text>
-          <Text style={styles.menuSubtitle}>{item.subtitle}</Text>
+        <View style={styles.menuItemContent}>
+          <Text style={styles.menuItemTitle}>{item.title}</Text>
+          <Text style={styles.menuItemSubtitle}>{item.subtitle}</Text>
         </View>
       </View>
       {item.type === 'switch' ? (
@@ -198,44 +162,53 @@ export const Profile: React.FC<Props> = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView style={styles.scrollView}>
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.title}>Profile</Text>
-          <TouchableOpacity
-            style={styles.editButton}
-            onPress={() => Alert.alert('Info', 'Edit profile feature coming soon!')}
-          >
+          <Text style={styles.headerTitle}>Profile</Text>
+          <TouchableOpacity onPress={() => Alert.alert('Info', 'Edit profile feature coming soon!')}>
             <Ionicons name="create" size={24} color={theme.colors.primary} />
           </TouchableOpacity>
         </View>
 
-        {renderProfileHeader()}
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Profile</Text>
-          <View style={styles.menuContainer}>
-            {profileMenuItems.map(renderMenuItem)}
+        {/* Profile Section */}
+        <View style={styles.profileSection}>
+          <View style={styles.profileImageContainer}>
+            <View style={styles.profileImage}>
+              <Ionicons name="person" size={40} color={theme.colors.primary} />
+            </View>
+            <TouchableOpacity style={styles.editImageButton}>
+              <Ionicons name="camera" size={16} color={theme.colors.background} />
+            </TouchableOpacity>
           </View>
+          <Text style={styles.userName}>
+            {userProfile ? `${userProfile.firstName} ${userProfile.lastName}` : user?.displayName || user?.email || 'User'}
+          </Text>
+          <Text style={styles.userEmail}>{user?.email}</Text>
+          {userProfile?.phone && (
+            <Text style={styles.userPhone}>{userProfile.phone}</Text>
+          )}
         </View>
 
-        <View style={styles.section}>
+        {/* Menu Sections */}
+        <View style={styles.menuSection}>
+          <Text style={styles.sectionTitle}>Account</Text>
+          {profileMenuItems.map(renderMenuItem)}
+        </View>
+
+        <View style={styles.menuSection}>
           <Text style={styles.sectionTitle}>Settings</Text>
-          <View style={styles.menuContainer}>
-            {settingsMenuItems.map(renderMenuItem)}
-          </View>
+          {settingsMenuItems.map(renderMenuItem)}
         </View>
 
-        <View style={styles.section}>
+        {/* Sign Out Button */}
+        <View style={styles.signOutSection}>
           <CustomButton
-            title="Logout"
-            onPress={handleLogout}
+            title="Sign Out"
+            onPress={handleSignOut}
             variant="outline"
-            style={styles.logoutButton}
+            style={styles.signOutButton}
           />
-        </View>
-
-        <View style={styles.footer}>
-          <Text style={styles.versionText}>Version 1.0.0</Text>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -247,8 +220,8 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: theme.colors.background,
   },
-  scrollView: {
-    flex: 1,
+  scrollContent: {
+    flexGrow: 1,
   },
   header: {
     flexDirection: 'row',
@@ -257,14 +230,11 @@ const styles = StyleSheet.create({
     padding: theme.spacing.lg,
     backgroundColor: theme.colors.background,
   },
-  title: {
+  headerTitle: {
     ...theme.typography.h3,
     color: theme.colors.textPrimary,
   },
-  editButton: {
-    padding: theme.spacing.xs,
-  },
-  profileHeader: {
+  profileSection: {
     alignItems: 'center',
     padding: theme.spacing.lg,
     backgroundColor: theme.colors.background,
@@ -307,19 +277,15 @@ const styles = StyleSheet.create({
   userPhone: {
     ...theme.typography.body,
     color: theme.colors.textSecondary,
+    marginBottom: theme.spacing.xs,
   },
-  section: {
+  menuSection: {
     padding: theme.spacing.lg,
   },
   sectionTitle: {
     ...theme.typography.h4,
     color: theme.colors.textPrimary,
     marginBottom: theme.spacing.md,
-  },
-  menuContainer: {
-    backgroundColor: theme.colors.background,
-    borderRadius: theme.borderRadius.lg,
-    ...theme.shadows.small,
   },
   menuItem: {
     flexDirection: 'row',
@@ -334,7 +300,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flex: 1,
   },
-  menuIcon: {
+  menuItemIcon: {
     width: 40,
     height: 40,
     borderRadius: theme.borderRadius.md,
@@ -343,27 +309,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginRight: theme.spacing.md,
   },
-  menuContent: {
+  menuItemContent: {
     flex: 1,
   },
-  menuTitle: {
+  menuItemTitle: {
     ...theme.typography.body,
     color: theme.colors.textPrimary,
     marginBottom: theme.spacing.xs,
   },
-  menuSubtitle: {
+  menuItemSubtitle: {
     ...theme.typography.bodySmall,
     color: theme.colors.textSecondary,
   },
-  logoutButton: {
-    borderColor: theme.colors.error,
-  },
-  footer: {
-    alignItems: 'center',
+  signOutSection: {
     padding: theme.spacing.lg,
   },
-  versionText: {
-    ...theme.typography.caption,
-    color: theme.colors.textLight,
+  signOutButton: {
+    borderColor: theme.colors.error,
   },
 });

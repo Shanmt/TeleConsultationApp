@@ -6,13 +6,15 @@ import {
   ScrollView,
   SafeAreaView,
   Alert,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { CustomInput } from '../components/CustomInput';
 import { CustomButton } from '../components/CustomButton';
 import { theme } from '../constants/theme';
 import { RootStackParamList } from '../types/navigation';
-import { LoginCredentials } from '../types/user';
+import { useAuth } from '../contexts/AuthContext';
 
 type LoginScreenNavigationProp = StackNavigationProp<
   RootStackParamList,
@@ -24,16 +26,17 @@ interface Props {
 }
 
 export const Login: React.FC<Props> = ({ navigation }) => {
-  const [credentials, setCredentials] = useState<LoginCredentials>({
+  const { signIn, resetPassword } = useAuth();
+  const [credentials, setCredentials] = useState({
     email: '',
     password: '',
   });
 
-  const [errors, setErrors] = useState<Partial<LoginCredentials>>({});
+  const [errors, setErrors] = useState<Partial<typeof credentials>>({});
   const [loading, setLoading] = useState(false);
 
   const validateForm = (): boolean => {
-    const newErrors: Partial<LoginCredentials> = {};
+    const newErrors: Partial<typeof credentials> = {};
 
     if (!credentials.email) {
       newErrors.email = 'Email is required';
@@ -56,25 +59,30 @@ export const Login: React.FC<Props> = ({ navigation }) => {
 
     setLoading(true);
     try {
-      // TODO: Implement actual login logic
-      await new Promise(resolve => setTimeout(() => resolve(undefined), 2000)); // Simulate API call
-      
-      // For demo purposes, navigate to main app
-      // In real app, you would check authentication status
-      Alert.alert('Success', 'Login successful!', [
-        { text: 'OK', onPress: () => {
-          // Navigate to main app - this would be handled by auth context
-          console.log('Navigate to main app');
-        }},
-      ]);
-    } catch (error) {
-      Alert.alert('Error', 'Login failed. Please check your credentials.');
+      await signIn(credentials.email, credentials.password);
+      // Navigation will be handled by AuthContext when user state changes
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Login failed. Please check your credentials.');
     } finally {
       setLoading(false);
     }
   };
 
-  const updateCredentials = (field: keyof LoginCredentials, value: string) => {
+  const handleForgotPassword = async () => {
+    if (!credentials.email) {
+      Alert.alert('Error', 'Please enter your email address first.');
+      return;
+    }
+
+    try {
+      await resetPassword(credentials.email);
+      Alert.alert('Success', 'Password reset email sent. Please check your inbox.');
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Failed to send reset email.');
+    }
+  };
+
+  const updateCredentials = (field: keyof typeof credentials, value: string) => {
     setCredentials(prev => ({ ...prev, [field]: value }));
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: undefined }));
@@ -83,7 +91,14 @@ export const Login: React.FC<Props> = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <KeyboardAvoidingView 
+        style={styles.keyboardAvoidingView}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
+        <ScrollView 
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
         <View style={styles.header}>
           <Text style={styles.title}>Welcome Back</Text>
           <Text style={styles.subtitle}>
@@ -113,33 +128,32 @@ export const Login: React.FC<Props> = ({ navigation }) => {
             isPassword
           />
 
+          <Text
+            style={styles.forgotPassword}
+            onPress={handleForgotPassword}
+          >
+            Forgot Password?
+          </Text>
+
           <CustomButton
-            title="Sign In"
+            title={loading ? 'Signing In...' : 'Sign In'}
             onPress={handleLogin}
-            loading={loading}
+            disabled={loading}
             style={styles.loginButton}
           />
 
-          <View style={styles.forgotPasswordContainer}>
-            <CustomButton
-              title="Forgot Password?"
-              onPress={() => Alert.alert('Info', 'Forgot password functionality coming soon!')}
-              variant="outline"
-              size="small"
-            />
-          </View>
-
           <View style={styles.registerContainer}>
             <Text style={styles.registerText}>Don't have an account? </Text>
-            <CustomButton
-              title="Sign Up"
+            <Text
+              style={styles.registerLink}
               onPress={() => navigation.navigate('Registration')}
-              variant="outline"
-              size="small"
-            />
+            >
+              Sign Up
+            </Text>
           </View>
         </View>
-      </ScrollView>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 };
@@ -149,9 +163,13 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: theme.colors.background,
   },
+  keyboardAvoidingView: {
+    flex: 1,
+  },
   scrollContent: {
     flexGrow: 1,
     padding: theme.spacing.lg,
+    paddingBottom: theme.spacing.xl * 2, // Add extra bottom padding to prevent overlap
   },
   header: {
     alignItems: 'center',
@@ -188,5 +206,17 @@ const styles = StyleSheet.create({
   registerText: {
     ...theme.typography.body,
     color: theme.colors.textSecondary,
+  },
+  forgotPassword: {
+    ...theme.typography.body,
+    color: theme.colors.primary,
+    textDecorationLine: 'underline',
+    textAlign: 'center',
+    marginBottom: theme.spacing.lg,
+  },
+  registerLink: {
+    ...theme.typography.body,
+    color: theme.colors.primary,
+    textDecorationLine: 'underline',
   },
 });

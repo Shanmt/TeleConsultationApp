@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "519916711287",
+    "project_id": "teleconsultationapp",
+    "storage_bucket": "teleconsultationapp.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:519916711287:android:1138aa88508b76e3fc8572",
+        "android_client_info": {
+          "package_name": "com.nina.teleclinic365"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDGlKAFmic-_sD57ITLsa3fZamuwRGR0XA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

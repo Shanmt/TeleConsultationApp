@@ -71,16 +71,6 @@ export const ContactUs: React.FC<Props> = ({ navigation }) => {
       answer: 'You can book an appointment by navigating to the "Book Appointment" section and selecting your preferred doctor, date, and time.',
     },
     {
-      id: '2',
-      question: 'What types of consultations are available?',
-      answer: 'We offer video calls, audio calls, and chat consultations depending on your preference and the doctor\'s availability.',
-    },
-    {
-      id: '3',
-      question: 'Can I cancel or reschedule my appointment?',
-      answer: 'Yes, you can cancel or reschedule your appointment up to 24 hours before the scheduled time through the appointment details.',
-    },
-    {
       id: '4',
       question: 'How much does a consultation cost?',
       answer: 'Consultation fees vary by doctor and specialty, typically ranging from $50 to $200 per session.',
@@ -161,7 +151,7 @@ export const ContactUs: React.FC<Props> = ({ navigation }) => {
           {contactInfo.map(renderContactCard)}
         </View>
 
-        <View style={styles.section}>
+        {/* <View style={styles.section}>
           <Text style={styles.sectionTitle}>Send us a Message</Text>
           <View style={styles.formCard}>
             <CustomInput
@@ -204,7 +194,7 @@ export const ContactUs: React.FC<Props> = ({ navigation }) => {
               style={styles.submitButton}
             />
           </View>
-        </View>
+        </View> */}
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Frequently Asked Questions</Text>

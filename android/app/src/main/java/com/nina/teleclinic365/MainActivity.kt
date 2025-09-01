@@ -1,4 +1,4 @@
-package com.teleconsultationapp
+package com.nina.teleclinic365
 
 import com.facebook.react.ReactActivity
 import com.facebook.react.ReactActivityDelegate

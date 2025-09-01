@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -11,10 +11,10 @@ import {
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RouteProp } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import firestore from '@react-native-firebase/firestore';
 import { CustomButton } from '../components/CustomButton';
 import { theme } from '../constants/theme';
 import { RootStackParamList } from '../types/navigation';
-import { Appointment } from '../types/appointment';
 
 type BookingDetailsScreenNavigationProp = StackNavigationProp<
   RootStackParamList,
@@ -31,41 +31,62 @@ interface Props {
   route: BookingDetailsScreenRouteProp;
 }
 
+interface AppointmentData {
+  id: string;
+  userId: string;
+  consultationType: string;
+  fullName: string;
+  email: string;
+  phoneNumber: string;
+  dateOfBirth: string;
+  gender: string;
+  preferredDate: string;
+  selectedTimeSlot: string;
+  currentMedication: string;
+  currentSymptoms: string;
+  urgencyLevel: string;
+  specialRequests: string;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export const BookingDetails: React.FC<Props> = ({ navigation, route }) => {
   const { bookingId } = route.params;
+  const [appointment, setAppointment] = useState<AppointmentData | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  // Mock appointment data - in real app, fetch from API
-  const appointment: Appointment = {
-    id: bookingId,
-    doctorId: '1',
-    doctor: {
-      id: '1',
-      name: 'Dr. Sarah Johnson',
-      specialization: 'Cardiology',
-      experience: 15,
-      rating: 4.8,
-      image: 'https://example.com/doctor1.jpg',
-      availableSlots: [],
-      consultationFee: 150,
-      description: 'Experienced cardiologist with expertise in heart conditions.',
-    },
-    patientId: 'patient-1',
-    date: '2024-01-15',
-    time: '10:00 AM',
-    status: 'confirmed',
-    consultationType: 'video',
-    symptoms: 'Chest pain and shortness of breath',
-    notes: 'Patient has a history of heart conditions',
-    createdAt: '2024-01-10T10:00:00Z',
-    updatedAt: '2024-01-10T10:00:00Z',
+  useEffect(() => {
+    fetchAppointmentDetails();
+  }, [bookingId]);
+
+  const fetchAppointmentDetails = async () => {
+    try {
+      const docRef = await firestore().collection('appointments').doc(bookingId).get();
+      if (docRef.exists()) {
+        const data = docRef.data() as AppointmentData;
+        setAppointment({ ...data, id: docRef.id });
+      } else {
+        Alert.alert('Error', 'Appointment not found');
+        navigation.navigate('Dashboard');
+      }
+    } catch (error) {
+      console.error('Error fetching appointment:', error);
+      Alert.alert('Error', 'Failed to fetch appointment details');
+      navigation.navigate('Dashboard');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'confirmed':
         return theme.colors.success;
-      case 'pending':
+      case 'in_review':
         return theme.colors.warning;
+      case 'rejected':
+        return theme.colors.error;
       case 'completed':
         return theme.colors.info;
       case 'cancelled':
@@ -79,8 +100,10 @@ export const BookingDetails: React.FC<Props> = ({ navigation, route }) => {
     switch (status) {
       case 'confirmed':
         return 'checkmark-circle';
-      case 'pending':
+      case 'in_review':
         return 'time';
+      case 'rejected':
+        return 'close-circle';
       case 'completed':
         return 'checkmark-done-circle';
       case 'cancelled':
@@ -90,8 +113,36 @@ export const BookingDetails: React.FC<Props> = ({ navigation, route }) => {
     }
   };
 
-  const handleJoinConsultation = () => {
-    Alert.alert('Join Consultation', 'Starting video consultation...');
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case 'confirmed':
+        return 'Confirmed';
+      case 'in_review':
+        return 'Pending';
+      case 'rejected':
+        return 'Rejected';
+      case 'completed':
+        return 'Completed';
+      case 'cancelled':
+        return 'Cancelled';
+      default:
+        return status.charAt(0).toUpperCase() + status.slice(1);
+    }
+  };
+
+  const getUrgencyLevelText = (urgency: string) => {
+    switch (urgency) {
+      case 'low':
+        return 'Low - Routine Checkup';
+      case 'normal':
+        return 'Normal - Within a week';
+      case 'high':
+        return 'High - Within 2-3 days';
+      case 'urgent':
+        return 'Urgent - Same day';
+      default:
+        return urgency;
+    }
   };
 
   const handleCancelAppointment = () => {
@@ -103,18 +154,48 @@ export const BookingDetails: React.FC<Props> = ({ navigation, route }) => {
         { 
           text: 'Yes', 
           style: 'destructive',
-          onPress: () => {
-            Alert.alert('Success', 'Appointment cancelled successfully');
-            navigation.goBack();
+          onPress: async () => {
+            try {
+              await firestore()
+                .collection('appointments')
+                .doc(appointment?.id)
+                .update({ status: 'cancelled', updatedAt: new Date().toISOString() });
+              Alert.alert('Success', 'Appointment cancelled successfully');
+              navigation.navigate('Dashboard');
+            } catch (error) {
+              console.error('Error cancelling appointment:', error);
+              Alert.alert('Error', 'Failed to cancel appointment. Please try again.');
+            }
           }
         },
       ]
     );
   };
 
-  const handleReschedule = () => {
-    navigation.navigate('BookAppointment');
-  };
+  // Removed reschedule handler
+  // const handleReschedule = () => {
+  //   navigation.navigate('BookAppointment');
+  // };
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <Text style={styles.loadingText}>Loading appointment details...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (!appointment) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <Text style={styles.loadingText}>Appointment not found</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -122,7 +203,7 @@ export const BookingDetails: React.FC<Props> = ({ navigation, route }) => {
         <View style={styles.header}>
           <TouchableOpacity
             style={styles.backButton}
-            onPress={() => navigation.goBack()}
+            onPress={() => navigation.navigate('Dashboard')}
           >
             <Ionicons name="arrow-back" size={24} color={theme.colors.primary} />
           </TouchableOpacity>
@@ -138,35 +219,39 @@ export const BookingDetails: React.FC<Props> = ({ navigation, route }) => {
               color={getStatusColor(appointment.status)} 
             />
             <Text style={[styles.statusText, { color: getStatusColor(appointment.status) }]}>
-              {appointment.status.charAt(0).toUpperCase() + appointment.status.slice(1)}
+              {getStatusText(appointment.status)}
             </Text>
           </View>
           <Text style={styles.appointmentId}>ID: {appointment.id}</Text>
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Doctor Information</Text>
-          <View style={styles.doctorCard}>
-            <View style={styles.doctorAvatar}>
-              <Ionicons name="person" size={32} color={theme.colors.primary} />
+          <Text style={styles.sectionTitle}>Personal Information</Text>
+          <View style={styles.detailsCard}>
+            <View style={styles.detailRow}>
+              <Ionicons name="person" size={20} color={theme.colors.textSecondary} />
+              <Text style={styles.detailLabel}>Name:</Text>
+              <Text style={styles.detailValue}>{appointment.fullName}</Text>
             </View>
-            <View style={styles.doctorInfo}>
-              <Text style={styles.doctorName}>{appointment.doctor.name}</Text>
-              <Text style={styles.doctorSpecialization}>{appointment.doctor.specialization}</Text>
-              <View style={styles.doctorStats}>
-                <View style={styles.stat}>
-                  <Ionicons name="star" size={14} color={theme.colors.warning} />
-                  <Text style={styles.statText}>{appointment.doctor.rating}</Text>
-                </View>
-                <View style={styles.stat}>
-                  <Ionicons name="time" size={14} color={theme.colors.textSecondary} />
-                  <Text style={styles.statText}>{appointment.doctor.experience} years</Text>
-                </View>
-                <View style={styles.stat}>
-                  <Ionicons name="cash" size={14} color={theme.colors.success} />
-                  <Text style={styles.statText}>${appointment.doctor.consultationFee}</Text>
-                </View>
-              </View>
+            <View style={styles.detailRow}>
+              <Ionicons name="mail" size={20} color={theme.colors.textSecondary} />
+              <Text style={styles.detailLabel}>Email:</Text>
+              <Text style={styles.detailValue}>{appointment.email}</Text>
+            </View>
+            <View style={styles.detailRow}>
+              <Ionicons name="call" size={20} color={theme.colors.textSecondary} />
+              <Text style={styles.detailLabel}>Phone:</Text>
+              <Text style={styles.detailValue}>{appointment.phoneNumber}</Text>
+            </View>
+            <View style={styles.detailRow}>
+              <Ionicons name="calendar" size={20} color={theme.colors.textSecondary} />
+              <Text style={styles.detailLabel}>DOB:</Text>
+              <Text style={styles.detailValue}>{appointment.dateOfBirth}</Text>
+            </View>
+            <View style={styles.detailRow}>
+              <Ionicons name="person-circle" size={20} color={theme.colors.textSecondary} />
+              <Text style={styles.detailLabel}>Gender:</Text>
+              <Text style={styles.detailValue}>{appointment.gender.charAt(0).toUpperCase() + appointment.gender.slice(1)}</Text>
             </View>
           </View>
         </View>
@@ -175,76 +260,68 @@ export const BookingDetails: React.FC<Props> = ({ navigation, route }) => {
           <Text style={styles.sectionTitle}>Appointment Details</Text>
           <View style={styles.detailsCard}>
             <View style={styles.detailRow}>
+              <Ionicons name="medical" size={20} color={theme.colors.textSecondary} />
+              <Text style={styles.detailLabel}>Type:</Text>
+              <Text style={styles.detailValue}>{appointment.consultationType}</Text>
+            </View>
+            <View style={styles.detailRow}>
               <Ionicons name="calendar" size={20} color={theme.colors.textSecondary} />
               <Text style={styles.detailLabel}>Date:</Text>
-              <Text style={styles.detailValue}>{appointment.date}</Text>
+              <Text style={styles.detailValue}>{appointment.preferredDate}</Text>
             </View>
             <View style={styles.detailRow}>
               <Ionicons name="time" size={20} color={theme.colors.textSecondary} />
               <Text style={styles.detailLabel}>Time:</Text>
-              <Text style={styles.detailValue}>{appointment.time}</Text>
+              <Text style={styles.detailValue}>{appointment.selectedTimeSlot}</Text>
             </View>
             <View style={styles.detailRow}>
-              <Ionicons 
-                name={appointment.consultationType === 'video' ? 'videocam' : 'call'} 
-                size={20} 
-                color={theme.colors.textSecondary} 
+              <Ionicons name="warning" size={20} color={theme.colors.textSecondary} />
+              <Text style={styles.detailLabel}>Urgency:</Text>
+              <Text style={styles.detailValue}>{getUrgencyLevelText(appointment.urgencyLevel)}</Text>
+            </View>
+          </View>
+        </View>
+
+        {appointment.currentMedication && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Current Medication</Text>
+            <View style={styles.infoCard}>
+              <Text style={styles.infoText}>{appointment.currentMedication}</Text>
+            </View>
+          </View>
+        )}
+
+        {appointment.currentSymptoms && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Current Symptoms</Text>
+            <View style={styles.infoCard}>
+              <Text style={styles.infoText}>{appointment.currentSymptoms}</Text>
+            </View>
+          </View>
+        )}
+
+        {appointment.specialRequests && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Special Requests</Text>
+            <View style={styles.infoCard}>
+              <Text style={styles.infoText}>{appointment.specialRequests}</Text>
+            </View>
+          </View>
+        )}
+
+        {/* Show Cancel button only if appointment is not cancelled */}
+        {appointment.status !== 'cancelled' && (
+          <View style={styles.actionsSection}>
+            <View style={styles.secondaryActions}>
+              <CustomButton
+                title="Cancel"
+                onPress={handleCancelAppointment}
+                variant="outline"
+                style={styles.secondaryButton}
               />
-              <Text style={styles.detailLabel}>Type:</Text>
-              <Text style={styles.detailValue}>
-                {appointment.consultationType.charAt(0).toUpperCase() + appointment.consultationType.slice(1)} Consultation
-              </Text>
-            </View>
-            <View style={styles.detailRow}>
-              <Ionicons name="cash" size={20} color={theme.colors.textSecondary} />
-              <Text style={styles.detailLabel}>Fee:</Text>
-              <Text style={styles.detailValue}>${appointment.doctor.consultationFee}</Text>
-            </View>
-          </View>
-        </View>
-
-        {appointment.symptoms && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Symptoms</Text>
-            <View style={styles.symptomsCard}>
-              <Text style={styles.symptomsText}>{appointment.symptoms}</Text>
             </View>
           </View>
         )}
-
-        {appointment.notes && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Notes</Text>
-            <View style={styles.notesCard}>
-              <Text style={styles.notesText}>{appointment.notes}</Text>
-            </View>
-          </View>
-        )}
-
-        <View style={styles.actionsSection}>
-          {appointment.status === 'confirmed' && (
-            <CustomButton
-              title="Join Consultation"
-              onPress={handleJoinConsultation}
-              style={styles.joinButton}
-            />
-          )}
-          
-          <View style={styles.secondaryActions}>
-            <CustomButton
-              title="Reschedule"
-              onPress={handleReschedule}
-              variant="outline"
-              style={styles.secondaryButton}
-            />
-            <CustomButton
-              title="Cancel"
-              onPress={handleCancelAppointment}
-              variant="outline"
-              style={styles.secondaryButton}
-            />
-          </View>
-        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -275,6 +352,15 @@ const styles = StyleSheet.create({
   placeholder: {
     width: 40,
   },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    ...theme.typography.body,
+    color: theme.colors.textSecondary,
+  },
   statusCard: {
     backgroundColor: theme.colors.background,
     borderRadius: theme.borderRadius.lg,
@@ -304,49 +390,6 @@ const styles = StyleSheet.create({
     color: theme.colors.textPrimary,
     marginBottom: theme.spacing.md,
   },
-  doctorCard: {
-    backgroundColor: theme.colors.background,
-    borderRadius: theme.borderRadius.lg,
-    padding: theme.spacing.md,
-    flexDirection: 'row',
-    alignItems: 'center',
-    ...theme.shadows.small,
-  },
-  doctorAvatar: {
-    width: 60,
-    height: 60,
-    borderRadius: theme.borderRadius.round,
-    backgroundColor: theme.colors.secondary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: theme.spacing.md,
-  },
-  doctorInfo: {
-    flex: 1,
-  },
-  doctorName: {
-    ...theme.typography.h4,
-    color: theme.colors.textPrimary,
-    marginBottom: theme.spacing.xs,
-  },
-  doctorSpecialization: {
-    ...theme.typography.bodySmall,
-    color: theme.colors.textSecondary,
-    marginBottom: theme.spacing.sm,
-  },
-  doctorStats: {
-    flexDirection: 'row',
-  },
-  stat: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginRight: theme.spacing.md,
-  },
-  statText: {
-    ...theme.typography.caption,
-    color: theme.colors.textSecondary,
-    marginLeft: theme.spacing.xs,
-  },
   detailsCard: {
     backgroundColor: theme.colors.background,
     borderRadius: theme.borderRadius.lg,
@@ -370,41 +413,27 @@ const styles = StyleSheet.create({
     color: theme.colors.textPrimary,
     flex: 1,
   },
-  symptomsCard: {
+  infoCard: {
     backgroundColor: theme.colors.background,
     borderRadius: theme.borderRadius.lg,
     padding: theme.spacing.md,
     ...theme.shadows.small,
   },
-  symptomsText: {
+  infoText: {
     ...theme.typography.body,
     color: theme.colors.textPrimary,
-  },
-  notesCard: {
-    backgroundColor: theme.colors.background,
-    borderRadius: theme.borderRadius.lg,
-    padding: theme.spacing.md,
-    ...theme.shadows.small,
-  },
-  notesText: {
-    ...theme.typography.body,
-    color: theme.colors.textPrimary,
+    lineHeight: 22,
   },
   actionsSection: {
     padding: theme.spacing.lg,
   },
-  joinButton: {
-    marginBottom: theme.spacing.md,
-  },
   secondaryActions: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   secondaryButton: {
-    flex: 1,
+    flex: 0,
     marginHorizontal: theme.spacing.xs,
-  },
-  cancelButton: {
-    borderColor: theme.colors.error,
   },
 });

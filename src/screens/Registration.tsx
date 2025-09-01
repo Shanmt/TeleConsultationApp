@@ -6,13 +6,15 @@ import {
   ScrollView,
   SafeAreaView,
   Alert,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { CustomInput } from '../components/CustomInput';
 import { CustomButton } from '../components/CustomButton';
 import { theme } from '../constants/theme';
 import { RootStackParamList } from '../types/navigation';
-import { RegistrationData } from '../types/user';
+import { useAuth } from '../contexts/AuthContext';
 
 type RegistrationScreenNavigationProp = StackNavigationProp<
   RootStackParamList,
@@ -24,7 +26,8 @@ interface Props {
 }
 
 export const Registration: React.FC<Props> = ({ navigation }) => {
-  const [formData, setFormData] = useState<RegistrationData>({
+  const { signUp } = useAuth();
+  const [formData, setFormData] = useState({
     email: '',
     password: '',
     confirmPassword: '',
@@ -32,14 +35,14 @@ export const Registration: React.FC<Props> = ({ navigation }) => {
     lastName: '',
     phone: '',
     dateOfBirth: '',
-    gender: 'male',
+    gender: 'male' as 'male' | 'female' | 'other',
   });
 
-  const [errors, setErrors] = useState<Partial<RegistrationData>>({});
+  const [errors, setErrors] = useState<Partial<typeof formData>>({});
   const [loading, setLoading] = useState(false);
 
   const validateForm = (): boolean => {
-    const newErrors: Partial<RegistrationData> = {};
+    const newErrors: Partial<typeof formData> = {};
 
     if (!formData.email) {
       newErrors.email = 'Email is required';
@@ -82,19 +85,18 @@ export const Registration: React.FC<Props> = ({ navigation }) => {
 
     setLoading(true);
     try {
-      // TODO: Implement actual registration logic
-      await new Promise(resolve => setTimeout(() => resolve(undefined), 2000)); // Simulate API call
+      await signUp(formData.email, formData.password, formData);
       Alert.alert('Success', 'Registration successful!', [
         { text: 'OK', onPress: () => navigation.navigate('Login') },
       ]);
-    } catch (error) {
-      Alert.alert('Error', 'Registration failed. Please try again.');
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Registration failed. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
-  const updateFormData = (field: keyof RegistrationData, value: string) => {
+  const updateFormData = (field: keyof typeof formData, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: undefined }));
@@ -103,11 +105,18 @@ export const Registration: React.FC<Props> = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <KeyboardAvoidingView 
+        style={styles.keyboardAvoidingView}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
+        <ScrollView 
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
         <View style={styles.header}>
           <Text style={styles.title}>Create Account</Text>
           <Text style={styles.subtitle}>
-            Join us for convenient teleconsultation services
+            Join us for seamless teleconsultation services
           </Text>
         </View>
 
@@ -152,6 +161,14 @@ export const Registration: React.FC<Props> = ({ navigation }) => {
           />
 
           <CustomInput
+            label="Date of Birth"
+            placeholder="MM/DD/YYYY"
+            value={formData.dateOfBirth}
+            onChangeText={(text) => updateFormData('dateOfBirth', text)}
+            leftIcon="calendar"
+          />
+
+          <CustomInput
             label="Password"
             placeholder="Enter your password"
             value={formData.password}
@@ -172,23 +189,24 @@ export const Registration: React.FC<Props> = ({ navigation }) => {
           />
 
           <CustomButton
-            title="Create Account"
+            title={loading ? 'Creating Account...' : 'Create Account'}
             onPress={handleRegister}
-            loading={loading}
+            disabled={loading}
             style={styles.registerButton}
           />
 
           <View style={styles.loginContainer}>
             <Text style={styles.loginText}>Already have an account? </Text>
-            <CustomButton
-              title="Sign In"
+            <Text
+              style={styles.loginLink}
               onPress={() => navigation.navigate('Login')}
-              variant="outline"
-              size="small"
-            />
+            >
+              Sign In
+            </Text>
           </View>
         </View>
-      </ScrollView>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 };
@@ -198,9 +216,13 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: theme.colors.background,
   },
+  keyboardAvoidingView: {
+    flex: 1,
+  },
   scrollContent: {
     flexGrow: 1,
     padding: theme.spacing.lg,
+    paddingBottom: theme.spacing.xl * 2, // Add extra bottom padding to prevent overlap
   },
   header: {
     alignItems: 'center',
@@ -233,5 +255,10 @@ const styles = StyleSheet.create({
   loginText: {
     ...theme.typography.body,
     color: theme.colors.textSecondary,
+  },
+  loginLink: {
+    ...theme.typography.body,
+    color: theme.colors.primary,
+    textDecorationLine: 'underline',
   },
 });

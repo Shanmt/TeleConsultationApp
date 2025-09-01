@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -10,11 +10,12 @@ import {
 } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import firestore from '@react-native-firebase/firestore';
 import { CustomInput } from '../components/CustomInput';
 import { CustomButton } from '../components/CustomButton';
 import { theme } from '../constants/theme';
 import { RootStackParamList } from '../types/navigation';
-import { Doctor, BookingFormData } from '../types/appointment';
+import { useAuth } from '../contexts/AuthContext';
 
 type BookAppointmentScreenNavigationProp = StackNavigationProp<
   RootStackParamList,
@@ -26,139 +27,176 @@ interface Props {
 }
 
 export const BookAppointment: React.FC<Props> = ({ navigation }) => {
-  const [selectedDoctor, setSelectedDoctor] = useState<Doctor | null>(null);
-  const [selectedDate, setSelectedDate] = useState('');
-  const [selectedTime, setSelectedTime] = useState('');
-  const [consultationType, setConsultationType] = useState<'video' | 'audio' | 'chat'>('video');
-  const [symptoms, setSymptoms] = useState('');
+  const { userProfile } = useAuth();
   const [loading, setLoading] = useState(false);
+  
+  // Form fields
+  const [consultationType, setConsultationType] = useState('General');
+  const [fullName, setFullName] = useState('');
+  const [email, setEmail] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [dateOfBirth, setDateOfBirth] = useState('');
+  const [gender, setGender] = useState('male');
+  const [preferredDate, setPreferredDate] = useState('');
+  const [selectedTimeSlot, setSelectedTimeSlot] = useState('');
+  const [currentMedication, setCurrentMedication] = useState('');
+  const [currentSymptoms, setCurrentSymptoms] = useState('');
+  const [urgencyLevel, setUrgencyLevel] = useState('normal');
+  const [specialRequests, setSpecialRequests] = useState('');
 
-  const doctors: Doctor[] = [
-    {
-      id: '1',
-      name: 'Dr. Sarah Johnson',
-      specialization: 'Cardiology',
-      experience: 15,
-      rating: 4.8,
-      image: 'https://example.com/doctor1.jpg',
-      availableSlots: [],
-      consultationFee: 150,
-      description: 'Experienced cardiologist with expertise in heart conditions.',
-    },
-    {
-      id: '2',
-      name: 'Dr. Michael Chen',
-      specialization: 'Dermatology',
-      experience: 12,
-      rating: 4.9,
-      image: 'https://example.com/doctor2.jpg',
-      availableSlots: [],
-      consultationFee: 120,
-      description: 'Specialist in skin conditions and cosmetic dermatology.',
-    },
-    {
-      id: '3',
-      name: 'Dr. Emily Rodriguez',
-      specialization: 'Pediatrics',
-      experience: 10,
-      rating: 4.7,
-      image: 'https://example.com/doctor3.jpg',
-      availableSlots: [],
-      consultationFee: 100,
-      description: 'Caring pediatrician with focus on child health and development.',
-    },
+  // Pre-populate user details when component mounts
+  useEffect(() => {
+    if (userProfile) {
+      setFullName(`${userProfile.firstName} ${userProfile.lastName}`);
+      setEmail(userProfile.email);
+      setPhoneNumber(userProfile.phone);
+      if (userProfile.dateOfBirth) {
+        setDateOfBirth(userProfile.dateOfBirth);
+      }
+      if (userProfile.gender) {
+        setGender(userProfile.gender);
+      }
+    }
+  }, [userProfile]);
+
+  const consultationTypes = [
+    { value: 'General', label: 'General & Preventive Consultation' },
+    { value: 'Menstrual', label: 'Menstrual & Hormonal Issues' },
+    { value: 'Fertility', label: 'Fertility & Pregnancy' },
+    { value: 'Gynecological', label: 'Gynecological Consultation' },
+    { value: 'Specialized', label: 'Specialized Consultation' },
+  ];
+
+  const genderOptions = [
+    { value: 'male', label: 'Male' },
+    { value: 'female', label: 'Female' },
+    { value: 'other', label: 'Other' },
+  ];
+
+  const urgencyLevels = [
+    { value: 'low', label: 'Low - Routine Checkup' },
+    { value: 'normal', label: 'Normal - Within a week' },
+    { value: 'high', label: 'High - Within 2-3 days' },
+    { value: 'urgent', label: 'Urgent - Same day' },
   ];
 
   const timeSlots = [
-    '09:00 AM', '10:00 AM', '11:00 AM', '02:00 PM', '03:00 PM', '04:00 PM'
-  ];
-
-  const consultationTypes = [
-    { type: 'video', label: 'Video Call', icon: 'videocam' },
-    { type: 'audio', label: 'Audio Call', icon: 'call' },
-    { type: 'chat', label: 'Chat', icon: 'chatbubble' },
+    '09:00 AM', '10:00 AM', '11:00 AM', '12:00 PM',
+    '02:00 PM', '03:00 PM', '04:00 PM', '05:00 PM'
   ];
 
   const handleBookAppointment = async () => {
-    if (!selectedDoctor || !selectedDate || !selectedTime) {
-      Alert.alert('Error', 'Please select a doctor, date, and time.');
+    // Validation
+    if (!fullName || !email || !phoneNumber || !dateOfBirth || !preferredDate || !selectedTimeSlot) {
+      Alert.alert('Error', 'Please fill in all required fields.');
+      return;
+    }
+
+    if (!currentSymptoms) {
+      Alert.alert('Error', 'Please describe your current symptoms.');
       return;
     }
 
     setLoading(true);
     try {
-      // TODO: Implement actual booking logic
-      await new Promise(resolve => setTimeout(() => resolve(undefined), 2000)); // Simulate API call
+      // Create appointment object
+      const appointmentData = {
+        userId: userProfile?.id || '',
+        consultationType,
+        fullName,
+        email,
+        phoneNumber,
+        dateOfBirth,
+        gender,
+        preferredDate,
+        selectedTimeSlot,
+        currentMedication,
+        currentSymptoms,
+        urgencyLevel,
+        specialRequests,
+        status: 'in_review',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      // Insert into Firestore appointments collection
+      const appointmentsRef = firestore().collection('appointments');
+      const docRef = await appointmentsRef.add(appointmentData);
       
-      Alert.alert('Success', 'Appointment booked successfully!', [
-        { text: 'OK', onPress: () => navigation.navigate('BookingDetails', { bookingId: 'new-booking-id' }) },
+      console.log('Appointment created successfully with ID:', docRef.id);
+      
+      Alert.alert('Success', 'Appointment booked successfully! Your appointment is now under review.', [
+        { text: 'OK', onPress: () => navigation.navigate('BookingDetails', { bookingId: docRef.id }) },
       ]);
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Error creating appointment:', error);
       Alert.alert('Error', 'Failed to book appointment. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
-  const renderDoctorCard = (doctor: Doctor) => (
-    <TouchableOpacity
-      key={doctor.id}
-      style={[
-        styles.doctorCard,
-        selectedDoctor?.id === doctor.id && styles.selectedDoctorCard
-      ]}
-      onPress={() => setSelectedDoctor(doctor)}
-    >
-      <View style={styles.doctorInfo}>
-        <View style={styles.doctorAvatar}>
-          <Ionicons name="person" size={32} color={theme.colors.primary} />
-        </View>
-        <View style={styles.doctorDetails}>
-          <Text style={styles.doctorName}>{doctor.name}</Text>
-          <Text style={styles.doctorSpecialization}>{doctor.specialization}</Text>
-          <View style={styles.doctorStats}>
-            <View style={styles.stat}>
-              <Ionicons name="star" size={14} color={theme.colors.warning} />
-              <Text style={styles.statText}>{doctor.rating}</Text>
-            </View>
-            <View style={styles.stat}>
-              <Ionicons name="time" size={14} color={theme.colors.textSecondary} />
-              <Text style={styles.statText}>{doctor.experience} years</Text>
-            </View>
-            <View style={styles.stat}>
-              <Ionicons name="cash" size={14} color={theme.colors.success} />
-              <Text style={styles.statText}>${doctor.consultationFee}</Text>
-            </View>
-          </View>
-        </View>
+  const renderDropdown = (
+    label: string,
+    value: string,
+    options: { value: string; label: string }[],
+    onValueChange: (value: string) => void,
+    required: boolean = false
+  ) => (
+    <View style={styles.inputGroup}>
+      <Text style={styles.inputLabel}>
+        {label} {required && <Text style={styles.required}>*</Text>}
+      </Text>
+      <View style={styles.dropdownContainer}>
+        {options.map((option) => (
+          <TouchableOpacity
+            key={option.value}
+            style={[
+              styles.dropdownOption,
+              value === option.value && styles.selectedDropdownOption
+            ]}
+            onPress={() => onValueChange(option.value)}
+          >
+            <Text style={[
+              styles.dropdownOptionText,
+              value === option.value && styles.selectedDropdownOptionText
+            ]}>
+              {option.label}
+            </Text>
+            {value === option.value && (
+              <Ionicons name="checkmark" size={16} color={theme.colors.background} />
+            )}
+          </TouchableOpacity>
+        ))}
       </View>
-      {selectedDoctor?.id === doctor.id && (
-        <Ionicons name="checkmark-circle" size={24} color={theme.colors.primary} />
-      )}
-    </TouchableOpacity>
+    </View>
   );
 
-  const renderConsultationType = (type: typeof consultationTypes[0]) => (
-    <TouchableOpacity
-      key={type.type}
-      style={[
-        styles.consultationTypeCard,
-        consultationType === type.type && styles.selectedConsultationType
-      ]}
-      onPress={() => setConsultationType(type.type as any)}
-    >
-      <Ionicons 
-        name={type.icon as any} 
-        size={24} 
-        color={consultationType === type.type ? theme.colors.background : theme.colors.primary} 
-      />
-      <Text style={[
-        styles.consultationTypeText,
-        consultationType === type.type && styles.selectedConsultationTypeText
-      ]}>
-        {type.label}
+  const renderTimeSlots = () => (
+    <View style={styles.inputGroup}>
+      <Text style={styles.inputLabel}>
+        Available Slots <Text style={styles.required}>*</Text>
       </Text>
-    </TouchableOpacity>
+      <View style={styles.timeSlotsGrid}>
+        {timeSlots.map((time) => (
+          <TouchableOpacity
+            key={time}
+            style={[
+              styles.timeSlot,
+              selectedTimeSlot === time && styles.selectedTimeSlot
+            ]}
+            onPress={() => setSelectedTimeSlot(time)}
+          >
+            <Text style={[
+              styles.timeSlotText,
+              selectedTimeSlot === time && styles.selectedTimeSlotText
+            ]}>
+              {time}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+    </View>
   );
 
   return (
@@ -166,74 +204,142 @@ export const BookAppointment: React.FC<Props> = ({ navigation }) => {
       <ScrollView style={styles.scrollView}>
         <View style={styles.header}>
           <Text style={styles.title}>Book Appointment</Text>
-          <Text style={styles.subtitle}>Choose your doctor and appointment details</Text>
+          <Text style={styles.subtitle}>Fill in your appointment details</Text>
         </View>
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Select Doctor</Text>
-          {doctors.map(renderDoctorCard)}
-        </View>
+        <View style={styles.form}>
+          {/* Consultation Type */}
+          {renderDropdown(
+            'Consultation Type',
+            consultationType,
+            consultationTypes,
+            setConsultationType,
+            true
+          )}
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Appointment Date</Text>
-          <CustomInput
-            placeholder="Select date (YYYY-MM-DD)"
-            value={selectedDate}
-            onChangeText={setSelectedDate}
-            leftIcon="calendar"
-          />
-        </View>
+          {/* Personal Information */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Personal Information</Text>
+            
+            <CustomInput
+              label="Full Name *"
+              placeholder="Enter your full name"
+              value={fullName}
+              onChangeText={setFullName}
+              leftIcon="person"
+            />
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Available Time Slots</Text>
-          <View style={styles.timeSlotsGrid}>
-            {timeSlots.map((time) => (
-              <TouchableOpacity
-                key={time}
-                style={[
-                  styles.timeSlot,
-                  selectedTime === time && styles.selectedTimeSlot
-                ]}
-                onPress={() => setSelectedTime(time)}
-              >
-                <Text style={[
-                  styles.timeSlotText,
-                  selectedTime === time && styles.selectedTimeSlotText
-                ]}>
-                  {time}
-                </Text>
-              </TouchableOpacity>
-            ))}
+            <CustomInput
+              label="Email Address *"
+              placeholder="Enter your email address"
+              value={email}
+              onChangeText={setEmail}
+              leftIcon="mail"
+              keyboardType="email-address"
+              autoCapitalize="none"
+            />
+
+            <CustomInput
+              label="Phone Number *"
+              placeholder="Enter your phone number"
+              value={phoneNumber}
+              onChangeText={setPhoneNumber}
+              leftIcon="call"
+              keyboardType="phone-pad"
+            />
+
+            <CustomInput
+              label="Date of Birth *"
+              placeholder="MM/DD/YYYY"
+              value={dateOfBirth}
+              onChangeText={setDateOfBirth}
+              leftIcon="calendar"
+            />
+
+            {renderDropdown(
+              'Gender',
+              gender,
+              genderOptions,
+              setGender,
+              true
+            )}
           </View>
-        </View>
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Consultation Type</Text>
-          <View style={styles.consultationTypesGrid}>
-            {consultationTypes.map(renderConsultationType)}
+          {/* Appointment Details */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Appointment Details</Text>
+            
+            <CustomInput
+              label="Preferred Date *"
+              placeholder="Select preferred date (YYYY-MM-DD)"
+              value={preferredDate}
+              onChangeText={setPreferredDate}
+              leftIcon="calendar"
+            />
+
+            {renderTimeSlots()}
           </View>
-        </View>
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Symptoms (Optional)</Text>
-          <CustomInput
-            placeholder="Describe your symptoms..."
-            value={symptoms}
-            onChangeText={setSymptoms}
-            multiline
-            numberOfLines={4}
-            textAlignVertical="top"
-            style={styles.symptomsInput}
-          />
-        </View>
+          {/* Medical Information */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Medical Information</Text>
+            
+            <CustomInput
+              label="Current Medication"
+              placeholder="List any current medications (optional)"
+              value={currentMedication}
+              onChangeText={setCurrentMedication}
+              leftIcon="medical"
+              multiline
+              numberOfLines={3}
+              textAlignVertical="top"
+            />
 
-        <View style={styles.section}>
-          <CustomButton
-            title="Book Appointment"
-            onPress={handleBookAppointment}
-            loading={loading}
-            disabled={!selectedDoctor || !selectedDate || !selectedTime}
-          />
+            <CustomInput
+              label="Current Symptoms *"
+              placeholder="Describe your current symptoms..."
+              value={currentSymptoms}
+              onChangeText={setCurrentSymptoms}
+              leftIcon="warning"
+              multiline
+              numberOfLines={4}
+              textAlignVertical="top"
+            />
+
+            {renderDropdown(
+              'Urgency Level',
+              urgencyLevel,
+              urgencyLevels,
+              setUrgencyLevel,
+              true
+            )}
+          </View>
+
+          {/* Special Requests */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Additional Information</Text>
+            
+            <CustomInput
+              label="Special Requests"
+              placeholder="Any special requests or additional information (optional)"
+              value={specialRequests}
+              onChangeText={setSpecialRequests}
+              leftIcon="chatbubble"
+              multiline
+              numberOfLines={3}
+              textAlignVertical="top"
+            />
+          </View>
+
+          {/* Submit Button */}
+          <View style={styles.section}>
+            <CustomButton
+              title="Book Appointment"
+              onPress={handleBookAppointment}
+              loading={loading}
+              disabled={!fullName || !email || !phoneNumber || !dateOfBirth || !preferredDate || !selectedTimeSlot || !currentSymptoms}
+            />
+          </View>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -261,69 +367,56 @@ const styles = StyleSheet.create({
     ...theme.typography.body,
     color: theme.colors.textSecondary,
   },
-  section: {
+  form: {
     padding: theme.spacing.lg,
+  },
+  section: {
+    marginBottom: theme.spacing.xl,
   },
   sectionTitle: {
     ...theme.typography.h4,
     color: theme.colors.textPrimary,
     marginBottom: theme.spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.border,
+    paddingBottom: theme.spacing.sm,
   },
-  doctorCard: {
-    backgroundColor: theme.colors.background,
-    borderRadius: theme.borderRadius.lg,
-    padding: theme.spacing.md,
+  inputGroup: {
     marginBottom: theme.spacing.md,
+  },
+  inputLabel: {
+    ...theme.typography.body,
+    color: theme.colors.textPrimary,
+    marginBottom: theme.spacing.sm,
+    fontWeight: '500',
+  },
+  required: {
+    color: theme.colors.error,
+  },
+  dropdownContainer: {
+    backgroundColor: theme.colors.background,
+    borderRadius: theme.borderRadius.md,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    overflow: 'hidden',
+  },
+  dropdownOption: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    borderWidth: 2,
-    borderColor: 'transparent',
-    ...theme.shadows.small,
+    padding: theme.spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.border,
   },
-  selectedDoctorCard: {
-    borderColor: theme.colors.primary,
-    backgroundColor: theme.colors.secondary,
+  selectedDropdownOption: {
+    backgroundColor: theme.colors.primary,
   },
-  doctorInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  doctorAvatar: {
-    width: 60,
-    height: 60,
-    borderRadius: theme.borderRadius.round,
-    backgroundColor: theme.colors.secondary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: theme.spacing.md,
-  },
-  doctorDetails: {
-    flex: 1,
-  },
-  doctorName: {
-    ...theme.typography.h4,
+  dropdownOptionText: {
+    ...theme.typography.body,
     color: theme.colors.textPrimary,
-    marginBottom: theme.spacing.xs,
   },
-  doctorSpecialization: {
-    ...theme.typography.bodySmall,
-    color: theme.colors.textSecondary,
-    marginBottom: theme.spacing.sm,
-  },
-  doctorStats: {
-    flexDirection: 'row',
-  },
-  stat: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginRight: theme.spacing.md,
-  },
-  statText: {
-    ...theme.typography.caption,
-    color: theme.colors.textSecondary,
-    marginLeft: theme.spacing.xs,
+  selectedDropdownOptionText: {
+    color: theme.colors.background,
   },
   timeSlotsGrid: {
     flexDirection: 'row',
@@ -350,34 +443,5 @@ const styles = StyleSheet.create({
   },
   selectedTimeSlotText: {
     color: theme.colors.background,
-  },
-  consultationTypesGrid: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  consultationTypeCard: {
-    flex: 1,
-    backgroundColor: theme.colors.background,
-    borderRadius: theme.borderRadius.md,
-    padding: theme.spacing.md,
-    marginHorizontal: theme.spacing.xs,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-  },
-  selectedConsultationType: {
-    backgroundColor: theme.colors.primary,
-    borderColor: theme.colors.primary,
-  },
-  consultationTypeText: {
-    ...theme.typography.bodySmall,
-    color: theme.colors.textPrimary,
-    marginTop: theme.spacing.xs,
-  },
-  selectedConsultationTypeText: {
-    color: theme.colors.background,
-  },
-  symptomsInput: {
-    height: 100,
   },
 });
