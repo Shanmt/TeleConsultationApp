@@ -35,6 +35,11 @@ export const theme = {
       fontWeight: '600' as const,
       lineHeight: 28,
     },
+    h5: {
+      fontSize: 16,
+      fontWeight: '600' as const,
+      lineHeight: 28,
+    },
     body: {
       fontSize: 16,
       fontWeight: '400' as const,
