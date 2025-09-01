@@ -8,8 +8,11 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
+  TouchableOpacity,
 } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import { CustomInput } from '../components/CustomInput';
 import { CustomButton } from '../components/CustomButton';
 import { theme } from '../constants/theme';
@@ -40,6 +43,8 @@ export const Registration: React.FC<Props> = ({ navigation }) => {
 
   const [errors, setErrors] = useState<Partial<typeof formData>>({});
   const [loading, setLoading] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [selectedDate, setSelectedDate] = useState(new Date());
 
   const validateForm = (): boolean => {
     const newErrors: Partial<typeof formData> = {};
@@ -103,6 +108,22 @@ export const Registration: React.FC<Props> = ({ navigation }) => {
     }
   };
 
+  const handleDateChange = (event: any, date?: Date) => {
+    setShowDatePicker(false);
+    if (date) {
+      setSelectedDate(date);
+      const day = date.getDate().toString().padStart(2, '0');
+      const month = (date.getMonth() + 1).toString().padStart(2, '0');
+      const year = date.getFullYear();
+      const formattedDate = `${day}/${month}/${year}`; // DD/MM/YYYY format
+      updateFormData('dateOfBirth', formattedDate);
+    }
+  };
+
+  const showDatePickerModal = () => {
+    setShowDatePicker(true);
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView 
@@ -160,13 +181,33 @@ export const Registration: React.FC<Props> = ({ navigation }) => {
             keyboardType="phone-pad"
           />
 
-          <CustomInput
-            label="Date of Birth"
-            placeholder="MM/DD/YYYY"
-            value={formData.dateOfBirth}
-            onChangeText={(text) => updateFormData('dateOfBirth', text)}
-            leftIcon="calendar"
-          />
+          <View style={styles.inputGroup}>
+            <Text style={styles.inputLabel}>Date of Birth</Text>
+            <TouchableOpacity
+              style={styles.datePickerButton}
+              onPress={showDatePickerModal}
+            >
+              <View style={styles.datePickerContent}>
+                <Ionicons name="calendar" size={20} color={theme.colors.textSecondary} />
+                <Text style={[
+                  styles.datePickerText,
+                  !formData.dateOfBirth && styles.placeholderText
+                ]}>
+                  {formData.dateOfBirth || 'Select your date of birth'}
+                </Text>
+              </View>
+              <Ionicons name="chevron-down" size={20} color={theme.colors.textSecondary} />
+            </TouchableOpacity>
+            {showDatePicker && (
+              <DateTimePicker
+                value={selectedDate}
+                mode="date"
+                display="default"
+                onChange={handleDateChange}
+                maximumDate={new Date()}
+              />
+            )}
+          </View>
 
           <CustomInput
             label="Password"
@@ -260,5 +301,39 @@ const styles = StyleSheet.create({
     ...theme.typography.body,
     color: theme.colors.primary,
     textDecorationLine: 'underline',
+  },
+  inputGroup: {
+    marginBottom: theme.spacing.md,
+  },
+  inputLabel: {
+    ...theme.typography.body,
+    color: theme.colors.textPrimary,
+    marginBottom: theme.spacing.sm,
+    fontWeight: '500',
+  },
+  datePickerButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: theme.colors.background,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    borderRadius: theme.borderRadius.md,
+    padding: theme.spacing.md,
+    minHeight: 50,
+  },
+  datePickerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  datePickerText: {
+    ...theme.typography.body,
+    color: theme.colors.textPrimary,
+    marginLeft: theme.spacing.sm,
+    flex: 1,
+  },
+  placeholderText: {
+    color: theme.colors.textLight,
   },
 });

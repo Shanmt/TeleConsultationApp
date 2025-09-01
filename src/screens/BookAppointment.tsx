@@ -9,6 +9,7 @@ import {
   Alert,
 } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import firestore from '@react-native-firebase/firestore';
 import { CustomInput } from '../components/CustomInput';
@@ -29,6 +30,10 @@ interface Props {
 export const BookAppointment: React.FC<Props> = ({ navigation }) => {
   const { userProfile } = useAuth();
   const [loading, setLoading] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showDobDatePicker, setShowDobDatePicker] = useState(false);
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [selectedDobDate, setSelectedDobDate] = useState(new Date());
   
   // Form fields
   const [consultationType, setConsultationType] = useState('General');
@@ -84,6 +89,38 @@ export const BookAppointment: React.FC<Props> = ({ navigation }) => {
     '09:00 AM', '10:00 AM', '11:00 AM', '12:00 PM',
     '02:00 PM', '03:00 PM', '04:00 PM', '05:00 PM'
   ];
+
+  const handleDateChange = (event: any, date?: Date) => {
+    setShowDatePicker(false);
+    if (date) {
+      setSelectedDate(date);
+      const day = date.getDate().toString().padStart(2, '0');
+      const month = (date.getMonth() + 1).toString().padStart(2, '0');
+      const year = date.getFullYear();
+      const formattedDate = `${day}/${month}/${year}`; // DD/MM/YYYY format
+      setPreferredDate(formattedDate);
+    }
+  };
+
+  const handleDobDateChange = (event: any, date?: Date) => {
+    setShowDobDatePicker(false);
+    if (date) {
+      setSelectedDobDate(date);
+      const day = date.getDate().toString().padStart(2, '0');
+      const month = (date.getMonth() + 1).toString().padStart(2, '0');
+      const year = date.getFullYear();
+      const formattedDate = `${day}/${month}/${year}`; // DD/MM/YYYY format
+      setDateOfBirth(formattedDate);
+    }
+  };
+
+  const showDatePickerModal = () => {
+    setShowDatePicker(true);
+  };
+
+  const showDobDatePickerModal = () => {
+    setShowDobDatePicker(true);
+  };
 
   const handleBookAppointment = async () => {
     // Validation
@@ -248,13 +285,35 @@ export const BookAppointment: React.FC<Props> = ({ navigation }) => {
               keyboardType="phone-pad"
             />
 
-            <CustomInput
-              label="Date of Birth *"
-              placeholder="MM/DD/YYYY"
-              value={dateOfBirth}
-              onChangeText={setDateOfBirth}
-              leftIcon="calendar"
-            />
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>
+                Date of Birth <Text style={styles.required}>*</Text>
+              </Text>
+              <TouchableOpacity
+                style={styles.datePickerButton}
+                onPress={showDobDatePickerModal}
+              >
+                <View style={styles.datePickerContent}>
+                  <Ionicons name="calendar" size={20} color={theme.colors.textSecondary} />
+                  <Text style={[
+                    styles.datePickerText,
+                    !dateOfBirth && styles.placeholderText
+                  ]}>
+                    {dateOfBirth || 'Select your date of birth'}
+                  </Text>
+                </View>
+                <Ionicons name="chevron-down" size={20} color={theme.colors.textSecondary} />
+              </TouchableOpacity>
+              {showDobDatePicker && (
+                <DateTimePicker
+                  value={selectedDobDate}
+                  mode="date"
+                  display="default"
+                  onChange={handleDobDateChange}
+                  maximumDate={new Date()}
+                />
+              )}
+            </View>
 
             {renderDropdown(
               'Gender',
@@ -269,13 +328,35 @@ export const BookAppointment: React.FC<Props> = ({ navigation }) => {
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Appointment Details</Text>
             
-            <CustomInput
-              label="Preferred Date *"
-              placeholder="Select preferred date (YYYY-MM-DD)"
-              value={preferredDate}
-              onChangeText={setPreferredDate}
-              leftIcon="calendar"
-            />
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>
+                Preferred Date <Text style={styles.required}>*</Text>
+              </Text>
+              <TouchableOpacity
+                style={styles.datePickerButton}
+                onPress={showDatePickerModal}
+              >
+                <View style={styles.datePickerContent}>
+                  <Ionicons name="calendar" size={20} color={theme.colors.textSecondary} />
+                  <Text style={[
+                    styles.datePickerText,
+                    !preferredDate && styles.placeholderText
+                  ]}>
+                    {preferredDate || 'Select preferred date'}
+                  </Text>
+                </View>
+                <Ionicons name="chevron-down" size={20} color={theme.colors.textSecondary} />
+              </TouchableOpacity>
+              {showDatePicker && (
+                <DateTimePicker
+                  value={selectedDate}
+                  mode="date"
+                  display="default"
+                  onChange={handleDateChange}
+                  minimumDate={new Date()}
+                />
+              )}
+            </View>
 
             {renderTimeSlots()}
           </View>
@@ -443,5 +524,30 @@ const styles = StyleSheet.create({
   },
   selectedTimeSlotText: {
     color: theme.colors.background,
+  },
+  datePickerButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: theme.colors.background,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    borderRadius: theme.borderRadius.md,
+    padding: theme.spacing.md,
+    minHeight: 50,
+  },
+  datePickerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  datePickerText: {
+    ...theme.typography.body,
+    color: theme.colors.textPrimary,
+    marginLeft: theme.spacing.sm,
+    flex: 1,
+  },
+  placeholderText: {
+    color: theme.colors.textLight,
   },
 });
