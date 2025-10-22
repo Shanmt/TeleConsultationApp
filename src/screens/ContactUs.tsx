@@ -41,26 +41,35 @@ export const ContactUs: React.FC<Props> = ({ navigation }) => {
       subtitle: '24/7 Available',
       icon: 'headset',
       action: 'Call Now',
-      value: '+1 (555) 123-4567',
-      onPress: () => Linking.openURL('tel:+15551234567'),
+      value: '+91 9895425112',
+      onPress: () => Linking.openURL('tel:+919895425112'),
     },
     {
       id: '2',
+      title: 'WhatsApp Support',
+      subtitle: 'Instant Messaging',
+      icon: 'logo-whatsapp',
+      action: 'Chat on WhatsApp',
+      value: '+44 7471 575877',
+      onPress: () => Linking.openURL('https://wa.me/447471575877'),
+    },
+    {
+      id: '3',
+      title: 'UPI Payment',
+      subtitle: 'Quick & Secure Payment',
+      icon: 'card',
+      action: 'Pay Now',
+      value: '9895425112@ybl',
+      onPress: () => Linking.openURL('upi://pay?pa=9895425112@ybl&pn=Teleconsultation&cu=INR'),
+    },
+    {
+      id: '4',
       title: 'Email Support',
       subtitle: 'Response within 24h',
       icon: 'mail',
       action: 'Send Email',
       value: 'support@teleconsultation.com',
       onPress: () => Linking.openURL('mailto:support@teleconsultation.com'),
-    },
-    {
-      id: '3',
-      title: 'Live Chat',
-      subtitle: 'Instant Support',
-      icon: 'chatbubbles',
-      action: 'Start Chat',
-      value: 'Available Now',
-      onPress: () => Alert.alert('Live Chat', 'Live chat feature coming soon!'),
     },
   ];
 
@@ -73,7 +82,7 @@ export const ContactUs: React.FC<Props> = ({ navigation }) => {
     {
       id: '4',
       question: 'How much does a consultation cost?',
-      answer: 'Consultation fees vary by doctor and specialty, typically ranging from $50 to $200 per session.',
+      answer: "Consultation charges typically range between ₹800 to ₹1500, depending on the nature of the visit and the doctor's specialization. For the most accurate and up-to-date information, it's best to connect with the doctor directly via WhatsApp or phone. They’ll be able to confirm the exact fee and help you schedule an appointment at your convenience.",
     },
   ];
 
@@ -210,7 +219,7 @@ export const ContactUs: React.FC<Props> = ({ navigation }) => {
               <View style={styles.officeDetail}>
                 <Ionicons name="location" size={20} color={theme.colors.textSecondary} />
                 <Text style={styles.officeText}>
-                  123 Healthcare Street, Medical District, NY 10001
+                  MGRA 127, Pattom P O, Thiruvananthapuram, Kerala 695004
                 </Text>
               </View>
               <View style={styles.officeDetail}>

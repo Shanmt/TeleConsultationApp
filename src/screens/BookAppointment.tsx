@@ -34,6 +34,8 @@ export const BookAppointment: React.FC<Props> = ({ navigation }) => {
   const [showDobDatePicker, setShowDobDatePicker] = useState(false);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [selectedDobDate, setSelectedDobDate] = useState(new Date());
+  const [availableTimeSlots, setAvailableTimeSlots] = useState<string[]>([]);
+  const [isLoadingSlots, setIsLoadingSlots] = useState(false);
   
   // Form fields
   const [consultationType, setConsultationType] = useState('General');
@@ -62,6 +64,8 @@ export const BookAppointment: React.FC<Props> = ({ navigation }) => {
         setGender(userProfile.gender);
       }
     }
+    // Initialize with default time slots
+    setAvailableTimeSlots(defaultTimeSlots);
   }, [userProfile]);
 
   const consultationTypes = [
@@ -85,7 +89,8 @@ export const BookAppointment: React.FC<Props> = ({ navigation }) => {
     { value: 'urgent', label: 'Urgent - Same day' },
   ];
 
-  const timeSlots = [
+  // Default time slots (fallback)
+  const defaultTimeSlots = [
     '09:00 AM', '10:00 AM', '11:00 AM', '12:00 PM',
     '02:00 PM', '03:00 PM', '04:00 PM', '05:00 PM'
   ];
@@ -99,6 +104,8 @@ export const BookAppointment: React.FC<Props> = ({ navigation }) => {
       const year = date.getFullYear();
       const formattedDate = `${day}/${month}/${year}`; // DD/MM/YYYY format
       setPreferredDate(formattedDate);
+      // Fetch available time slots for the selected date
+      fetchAvailableTimeSlots(formattedDate);
     }
   };
 
@@ -120,6 +127,46 @@ export const BookAppointment: React.FC<Props> = ({ navigation }) => {
 
   const showDobDatePickerModal = () => {
     setShowDobDatePicker(true);
+  };
+
+  const fetchAvailableTimeSlots = async (selectedDate: string) => {
+    try {
+      setIsLoadingSlots(true);
+      setSelectedTimeSlot(''); // Reset selected slot when date changes
+      
+      // Use DD/MM/YYYY format for Firestore query
+      const firestoreDate = selectedDate; // Keep DD/MM/YYYY format
+      
+      const scheduleRef = firestore().collection('appointmentSchedules');
+      const query = scheduleRef.where('date', '==', firestoreDate);
+      const snapshot = await query.get();
+      
+      if (snapshot.empty) {
+        // No schedule found for this date, continue with current/default slots
+        setAvailableTimeSlots(defaultTimeSlots);
+        return;
+      }
+      
+      const scheduleDoc = snapshot.docs[0];
+      const scheduleData = scheduleDoc.data();
+      
+      if (scheduleData.isBookingAllowed === false) {
+        Alert.alert('No Slots Available', 'There are no slots available for the selected date. Please choose another date.');
+        setAvailableTimeSlots([]);
+        setPreferredDate('');
+        return;
+      }
+      
+      // If booking is allowed, continue with current/default slots
+      // No need to fetch timeSlots from collection
+      setAvailableTimeSlots(defaultTimeSlots);
+    } catch (error) {
+      console.error('Error fetching time slots:', error);
+      Alert.alert('Error', 'Failed to fetch available time slots. Using default slots.');
+      setAvailableTimeSlots(defaultTimeSlots);
+    } finally {
+      setIsLoadingSlots(false);
+    }
   };
 
   const handleBookAppointment = async () => {
@@ -214,25 +261,35 @@ export const BookAppointment: React.FC<Props> = ({ navigation }) => {
       <Text style={styles.inputLabel}>
         Available Slots <Text style={styles.required}>*</Text>
       </Text>
-      <View style={styles.timeSlotsGrid}>
-        {timeSlots.map((time) => (
-          <TouchableOpacity
-            key={time}
-            style={[
-              styles.timeSlot,
-              selectedTimeSlot === time && styles.selectedTimeSlot
-            ]}
-            onPress={() => setSelectedTimeSlot(time)}
-          >
-            <Text style={[
-              styles.timeSlotText,
-              selectedTimeSlot === time && styles.selectedTimeSlotText
-            ]}>
-              {time}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
+      {isLoadingSlots ? (
+        <View style={styles.loadingContainer}>
+          <Text style={styles.loadingText}>Loading available slots...</Text>
+        </View>
+      ) : availableTimeSlots.length > 0 ? (
+        <View style={styles.timeSlotsGrid}>
+          {availableTimeSlots.map((time: string) => (
+            <TouchableOpacity
+              key={time}
+              style={[
+                styles.timeSlot,
+                selectedTimeSlot === time && styles.selectedTimeSlot
+              ]}
+              onPress={() => setSelectedTimeSlot(time)}
+            >
+              <Text style={[
+                styles.timeSlotText,
+                selectedTimeSlot === time && styles.selectedTimeSlotText
+              ]}>
+                {time}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      ) : (
+        <View style={styles.noSlotsContainer}>
+          <Text style={styles.noSlotsText}>No slots available for selected date</Text>
+        </View>
+      )}
     </View>
   );
 
@@ -549,5 +606,25 @@ const styles = StyleSheet.create({
   },
   placeholderText: {
     color: theme.colors.textLight,
+  },
+  loadingContainer: {
+    padding: theme.spacing.lg,
+    alignItems: 'center',
+  },
+  loadingText: {
+    ...theme.typography.body,
+    color: theme.colors.textSecondary,
+  },
+  noSlotsContainer: {
+    padding: theme.spacing.lg,
+    alignItems: 'center',
+    backgroundColor: theme.colors.background,
+    borderRadius: theme.borderRadius.md,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+  noSlotsText: {
+    ...theme.typography.body,
+    color: theme.colors.textSecondary,
   },
 });
