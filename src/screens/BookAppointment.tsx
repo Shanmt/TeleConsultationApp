@@ -38,7 +38,7 @@ export const BookAppointment: React.FC<Props> = ({ navigation }) => {
   const [isLoadingSlots, setIsLoadingSlots] = useState(false);
   
   // Form fields
-  const [consultationType, setConsultationType] = useState('General');
+  const [consultationType, setConsultationType] = useState('Pregnancy');
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
@@ -69,11 +69,14 @@ export const BookAppointment: React.FC<Props> = ({ navigation }) => {
   }, [userProfile]);
 
   const consultationTypes = [
-    { value: 'General', label: 'General & Preventive Consultation' },
-    { value: 'Menstrual', label: 'Menstrual & Hormonal Issues' },
-    { value: 'Fertility', label: 'Fertility & Pregnancy' },
-    { value: 'Gynecological', label: 'Gynecological Consultation' },
-    { value: 'Specialized', label: 'Specialized Consultation' },
+    { value: 'Pregnancy', label: 'Pregnancy Consultations' },
+    { value: 'High_Risk_Pregnancy', label: 'High risk pregnancy consultations' },
+    { value: 'Fetal_Medicine', label: 'Fetal Medicine opinion' },
+    { value: 'Pre_Pregnancy', label: 'Pre- pregnancy counselling' },
+    { value: 'Genetic_Counselling', label: 'Genetic Counselling' },
+    { value: 'Surgical', label: 'Surgical Consultations' },
+    { value: 'Respiratory', label: 'Respiratory Medicine Consultations' },
+    { value: 'Second_Opinion', label: 'Second opinion for Doctors' },
   ];
 
   const genderOptions = [
@@ -297,8 +300,17 @@ export const BookAppointment: React.FC<Props> = ({ navigation }) => {
     <SafeAreaView style={styles.container}>
       <ScrollView style={styles.scrollView}>
         <View style={styles.header}>
-          <Text style={styles.title}>Book Appointment</Text>
-          <Text style={styles.subtitle}>Fill in your appointment details</Text>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+          >
+            <Ionicons name="arrow-back" size={24} color={theme.colors.primary} />
+          </TouchableOpacity>
+          <View style={styles.headerContent}>
+            <Text style={styles.title}>New Appointment</Text>
+            <Text style={styles.subtitle}>Schedule your consultation</Text>
+          </View>
+          <View style={styles.placeholder} />
         </View>
 
         <View style={styles.form}>
@@ -493,8 +505,18 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     padding: theme.spacing.lg,
     backgroundColor: theme.colors.background,
+  },
+  backButton: {
+    padding: theme.spacing.xs,
+  },
+  headerContent: {
+    flex: 1,
+    marginLeft: theme.spacing.sm,
   },
   title: {
     ...theme.typography.h2,
@@ -504,6 +526,9 @@ const styles = StyleSheet.create({
   subtitle: {
     ...theme.typography.body,
     color: theme.colors.textSecondary,
+  },
+  placeholder: {
+    width: 40,
   },
   form: {
     padding: theme.spacing.lg,

@@ -1,5 +1,5 @@
 /**
- * Teleconsultation App
+ * TeleClinic365
  * React Native Mobile Application
  */
 

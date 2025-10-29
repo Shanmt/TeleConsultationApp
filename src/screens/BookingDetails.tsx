@@ -16,6 +16,19 @@ import { CustomButton } from '../components/CustomButton';
 import { theme } from '../constants/theme';
 import { RootStackParamList } from '../types/navigation';
 
+const CONSULTATION_LABELS: Record<string, string> = {
+  Pregnancy: 'Pregnancy Consultations',
+  High_Risk_Pregnancy: 'High risk pregnancy consultations',
+  Fetal_Medicine: 'Fetal Medicine opinion',
+  Pre_Pregnancy: 'Pre- pregnancy counselling',
+  Genetic_Counselling: 'Genetic Counselling',
+  Surgical: 'Surgical Consultations',
+  Respiratory: 'Respiratory Medicine Consultations',
+  Second_Opinion: 'Second opinion for Doctors',
+};
+
+const getConsultationLabel = (value: string) => CONSULTATION_LABELS[value] || value;
+
 type BookingDetailsScreenNavigationProp = StackNavigationProp<
   RootStackParamList,
   'BookingDetails'
@@ -199,18 +212,17 @@ export const BookingDetails: React.FC<Props> = ({ navigation, route }) => {
 
   return (
     <SafeAreaView style={styles.container}>
+      <View style={styles.header}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+        >
+          <Ionicons name="arrow-back" size={24} color={theme.colors.primary} />
+        </TouchableOpacity>
+        <Text style={styles.title}>Booking Information</Text>
+        <View style={styles.placeholder} />
+      </View>
       <ScrollView style={styles.scrollView}>
-        <View style={styles.header}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => navigation.navigate('Dashboard')}
-          >
-            <Ionicons name="arrow-back" size={24} color={theme.colors.primary} />
-          </TouchableOpacity>
-          <Text style={styles.title}>Appointment Details</Text>
-          <View style={styles.placeholder} />
-        </View>
-
         <View style={styles.statusCard}>
           <View style={styles.statusHeader}>
             <Ionicons 
@@ -262,7 +274,7 @@ export const BookingDetails: React.FC<Props> = ({ navigation, route }) => {
             <View style={styles.detailRow}>
               <Ionicons name="medical" size={20} color={theme.colors.textSecondary} />
               <Text style={styles.detailLabel}>Type:</Text>
-              <Text style={styles.detailValue}>{appointment.consultationType}</Text>
+              <Text style={styles.detailValue}>{getConsultationLabel(appointment.consultationType)}</Text>
             </View>
             <View style={styles.detailRow}>
               <Ionicons name="calendar" size={20} color={theme.colors.textSecondary} />
@@ -334,6 +346,7 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
+    paddingTop: 0,
   },
   header: {
     flexDirection: 'row',
@@ -348,6 +361,7 @@ const styles = StyleSheet.create({
   title: {
     ...theme.typography.h3,
     color: theme.colors.textPrimary,
+    fontWeight: 'bold',
   },
   placeholder: {
     width: 40,

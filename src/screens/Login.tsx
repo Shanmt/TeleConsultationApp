@@ -8,6 +8,7 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
+  Image,
 } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { CustomInput } from '../components/CustomInput';
@@ -100,9 +101,16 @@ export const Login: React.FC<Props> = ({ navigation }) => {
           showsVerticalScrollIndicator={false}
         >
         <View style={styles.header}>
+          <View style={styles.logoBanner}>
+            <Image 
+              source={require('../assets/logo.png')} 
+              style={styles.logoImage}
+              resizeMode="contain"
+            />
+          </View>
           <Text style={styles.title}>Welcome Back</Text>
           <Text style={styles.subtitle}>
-            Sign in to access your teleconsultation account
+            Sign in to access your TeleClinic365 account
           </Text>
         </View>
 
@@ -175,6 +183,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: theme.spacing.xl,
     marginTop: theme.spacing.lg,
+  },
+  logoBanner: {
+    alignItems: 'center',
+    marginBottom: theme.spacing.lg,
+    paddingVertical: theme.spacing.sm,
+  },
+  logoImage: {
+    width: 280,
+    height: 80,
+    maxWidth: '90%',
   },
   title: {
     ...theme.typography.h1,

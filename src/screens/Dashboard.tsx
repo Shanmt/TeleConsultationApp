@@ -7,6 +7,7 @@ import {
   SafeAreaView,
   TouchableOpacity,
   Alert,
+  Image,
 } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -46,11 +47,14 @@ interface AppointmentData {
 }
 
 const CONSULTATION_LABELS: Record<string, string> = {
-  General: 'General & Preventive Consultation',
-  Menstrual: 'Menstrual & Hormonal Issues',
-  Fertility: 'Fertility & Pregnancy',
-  Gynecological: 'Gynecological Consultation',
-  Specialized: 'Specialized Consultation',
+  Pregnancy: 'Pregnancy Consultations',
+  High_Risk_Pregnancy: 'High risk pregnancy consultations',
+  Fetal_Medicine: 'Fetal Medicine opinion',
+  Pre_Pregnancy: 'Pre- pregnancy counselling',
+  Genetic_Counselling: 'Genetic Counselling',
+  Surgical: 'Surgical Consultations',
+  Respiratory: 'Respiratory Medicine Consultations',
+  Second_Opinion: 'Second opinion for Doctors',
 };
 
 const URGENCY_LABELS: Record<string, string> = {
@@ -120,78 +124,79 @@ export const Dashboard: React.FC<Props> = ({ navigation }) => {
       title: 'Book Appointment',
       icon: 'calendar',
       onPress: () => navigation.navigate('BookAppointment'),
-      color: theme.colors.primary,
+      color: '#20B2AA', // Teal color
     },
     {
       id: '2',
       title: 'Contact Support',
-      icon: 'help-circle',
+      icon: 'headset',
       onPress: () => navigation.navigate('ContactUs'),
-      color: theme.colors.warning,
+      color: '#FF8C00', // Orange color
     },
   ];
 
   const renderQuickAction = (action: typeof quickActions[0]) => (
     <TouchableOpacity
       key={action.id}
-      style={[styles.quickActionCard, { borderLeftColor: action.color }]}
+      style={[styles.quickActionCard, { backgroundColor: action.color }]}
       onPress={action.onPress}
     >
-      <View style={[styles.quickActionIcon, { backgroundColor: action.color }]}>
-        <Ionicons name={action.icon as any} size={24} color="white" />
-      </View>
+      <Ionicons name={action.icon as any} size={24} color="white" />
       <Text style={styles.quickActionTitle}>{action.title}</Text>
-      <Ionicons name="chevron-forward" size={20} color={theme.colors.textSecondary} />
     </TouchableOpacity>
   );
 
   const renderAppointmentCard = (appointment: AppointmentData) => {
     const statusMeta = getStatusMeta(appointment.status);
+    const formatDate = (dateString: string) => {
+      try {
+        // Handle different date formats
+        let date: Date;
+        if (dateString.includes('/')) {
+          // Handle MM/DD/YYYY format
+          const [month, day, year] = dateString.split('/');
+          date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+        } else if (dateString.includes('-')) {
+          // Handle YYYY-MM-DD format
+          date = new Date(dateString);
+        } else {
+          // Try parsing as is
+          date = new Date(dateString);
+        }
+        
+        // Check if date is valid
+        if (isNaN(date.getTime())) {
+          return dateString; // Return original string if parsing fails
+        }
+        
+        const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        return `${days[date.getDay()]}, ${months[date.getMonth()]} ${date.getDate()}`;
+      } catch (error) {
+        console.error('Date parsing error:', error, 'Date string:', dateString);
+        return dateString; // Return original string if parsing fails
+      }
+    };
+    
     return (
-      <View key={appointment.id} style={styles.appointmentCard}>
-        <View style={styles.appointmentHeader}>
-          <View style={styles.appointmentHeaderLeft}>
-            <Text
-              style={styles.appointmentTitle}
-              numberOfLines={2}
-              ellipsizeMode="tail"
-            >
-              {getConsultationLabel(appointment.consultationType)}
-            </Text>
-            <Text style={styles.appointmentDate}>{appointment.preferredDate}</Text>
-          </View>
-          <View style={styles.appointmentStatus}>
-            <Ionicons 
-              name={statusMeta.icon}
-              size={16}
-              color={statusMeta.color}
-            />
-            <Text style={[
-              styles.appointmentStatusText,
-              { color: statusMeta.color }
-            ]}>
-              {statusMeta.label}
-            </Text>
-          </View>
+      <TouchableOpacity 
+        key={appointment.id} 
+        style={styles.appointmentCard}
+        onPress={() => navigation.navigate('BookingDetails', { bookingId: appointment.id })}
+      >
+        <View style={[styles.appointmentBorder, { backgroundColor: statusMeta.color }]} />
+        <View style={styles.appointmentContent}>
+          <Text style={styles.appointmentTitle}>
+            {getConsultationLabel(appointment.consultationType)}
+          </Text>
+          <Text style={styles.appointmentDate}>
+            {formatDate(appointment.preferredDate)} | {appointment.selectedTimeSlot}
+          </Text>
+          <Text style={styles.appointmentUrgency}>
+            {getUrgencyLabel(appointment.urgencyLevel)}
+          </Text>
         </View>
-        <View style={styles.appointmentDetails}>
-          <View style={styles.appointmentInfo}>
-            <Ionicons name="time" size={16} color={theme.colors.textSecondary} />
-            <Text style={styles.appointmentText}>{appointment.selectedTimeSlot}</Text>
-          </View>
-          <View style={styles.appointmentInfo}>
-            <Ionicons name="warning" size={16} color={theme.colors.textSecondary} />
-            <Text style={styles.appointmentText}>{getUrgencyLabel(appointment.urgencyLevel)}</Text>
-          </View>
-        </View>
-        <CustomButton
-          title="View Details"
-          onPress={() => navigation.navigate('BookingDetails', { bookingId: appointment.id })}
-          variant="outline"
-          size="small"
-          style={styles.viewDetailsButton}
-        />
-      </View>
+      </TouchableOpacity>
     );
   };
 
@@ -199,18 +204,26 @@ export const Dashboard: React.FC<Props> = ({ navigation }) => {
     <SafeAreaView style={styles.container}>
       <ScrollView style={styles.scrollView}>
         <View style={styles.header}>
-          <View>
-            <Text style={styles.greeting}>Good Morning!</Text>
-            <Text style={styles.userName}>
-              {userProfile ? `${userProfile.firstName} ${userProfile.lastName}` : 'User'}
-            </Text>
+          <View style={styles.logoBanner}>
+            <Image 
+              source={require('../assets/logo.png')} 
+              style={styles.logoImage}
+              resizeMode="contain"
+            />
           </View>
-          <TouchableOpacity
-            style={styles.profileButton}
-            onPress={() => navigation.navigate('Profile')}
-          >
-            <Ionicons name="person-circle" size={40} color={theme.colors.primary} />
-          </TouchableOpacity>
+          <View style={styles.headerTop}>
+            <View>
+              <Text style={styles.greeting}>
+                Hi, {userProfile ? userProfile.firstName : 'User'}
+              </Text>
+            </View>
+            <TouchableOpacity
+              style={styles.profileButton}
+              onPress={() => navigation.navigate('Profile')}
+            >
+              <Ionicons name="person-circle" size={40} color={theme.colors.primary} />
+            </TouchableOpacity>
+          </View>
         </View>
 
         <View style={styles.section}>
@@ -232,7 +245,9 @@ export const Dashboard: React.FC<Props> = ({ navigation }) => {
               <Text style={styles.loadingText}>Loading appointments...</Text>
             </View>
           ) : upcomingAppointments.length > 0 ? (
-            upcomingAppointments.map(renderAppointmentCard)
+            <View style={styles.appointmentsContainer}>
+              {upcomingAppointments.map(renderAppointmentCard)}
+            </View>
           ) : (
             <View style={styles.emptyState}>
               <Ionicons name="calendar-outline" size={48} color={theme.colors.textLight} />
@@ -259,19 +274,29 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
     padding: theme.spacing.lg,
     backgroundColor: theme.colors.background,
   },
-  greeting: {
-    ...theme.typography.body,
-    color: theme.colors.textSecondary,
+  headerTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: theme.spacing.md,
   },
-  userName: {
+  logoBanner: {
+    alignItems: 'center',
+    marginBottom: theme.spacing.md,
+    paddingVertical: theme.spacing.sm,
+  },
+  logoImage: {
+    width: 280,
+    height: 80,
+    maxWidth: '90%',
+  },
+  greeting: {
     ...theme.typography.h3,
     color: theme.colors.textPrimary,
+    fontWeight: 'bold',
   },
   profileButton: {
     padding: theme.spacing.xs,
@@ -294,89 +319,63 @@ const styles = StyleSheet.create({
     color: theme.colors.primary,
   },
   quickActionsGrid: {
-    flexDirection: 'column',
+    flexDirection: 'row',
     justifyContent: 'space-between',
+    gap: theme.spacing.md,
   },
   quickActionCard: {
-    width: '100%',
+    flex: 1,
     backgroundColor: theme.colors.background,
     borderRadius: theme.borderRadius.lg,
-    padding: theme.spacing.md,
-    marginBottom: theme.spacing.md,
-    flexDirection: 'row',
+    padding: theme.spacing.lg,
     alignItems: 'center',
-    borderLeftWidth: 4,
-    ...theme.shadows.small,
-  },
-  quickActionIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: theme.borderRadius.md,
     justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: theme.spacing.sm,
+    ...theme.shadows.small,
   },
   quickActionTitle: {
     ...theme.typography.bodySmall,
-    color: theme.colors.textPrimary,
-    flex: 1,
+    color: 'white',
+    marginTop: theme.spacing.sm,
+    textAlign: 'center',
+    fontWeight: '500',
   },
-  appointmentCard: {
+  appointmentsContainer: {
     backgroundColor: theme.colors.background,
     borderRadius: theme.borderRadius.lg,
     padding: theme.spacing.md,
-    marginBottom: theme.spacing.md,
     ...theme.shadows.small,
   },
-  appointmentHeader: {
+  appointmentCard: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: theme.spacing.sm,
+    marginBottom: theme.spacing.md,
+    position: 'relative',
+    backgroundColor: theme.colors.background,
+    borderRadius: theme.borderRadius.md,
+    padding: theme.spacing.sm,
+    ...theme.shadows.small,
   },
-  appointmentHeaderLeft: {
+  appointmentBorder: {
+    width: 4,
+    borderRadius: 2,
+    marginRight: theme.spacing.md,
+  },
+  appointmentContent: {
     flex: 1,
-    paddingRight: theme.spacing.sm,
   },
   appointmentTitle: {
     ...theme.typography.h5,
     color: theme.colors.textPrimary,
+    fontWeight: 'bold',
     marginBottom: theme.spacing.xs,
   },
   appointmentDate: {
     ...theme.typography.bodySmall,
     color: theme.colors.textSecondary,
+    marginBottom: theme.spacing.xs,
   },
-  appointmentStatus: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: theme.colors.secondary,
-    paddingHorizontal: theme.spacing.sm,
-    paddingVertical: theme.spacing.xs,
-    borderRadius: theme.borderRadius.sm,
-    marginLeft: theme.spacing.sm,
-    flexShrink: 0,
-  },
-  appointmentStatusText: {
-    ...theme.typography.caption,
-    marginLeft: theme.spacing.xs,
-  },
-  appointmentDetails: {
-    flexDirection: 'row',
-    marginBottom: theme.spacing.md,
-  },
-  appointmentInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginRight: theme.spacing.lg,
-  },
-  appointmentText: {
+  appointmentUrgency: {
     ...theme.typography.bodySmall,
     color: theme.colors.textSecondary,
-    marginLeft: theme.spacing.xs,
-  },
-  viewDetailsButton: {
-    alignSelf: 'flex-start',
   },
   emptyState: {
     alignItems: 'center',

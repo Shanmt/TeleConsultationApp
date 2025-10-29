@@ -9,6 +9,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   TouchableOpacity,
+  Image,
 } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -135,9 +136,16 @@ export const Registration: React.FC<Props> = ({ navigation }) => {
           showsVerticalScrollIndicator={false}
         >
         <View style={styles.header}>
+          <View style={styles.logoBanner}>
+            <Image 
+              source={require('../assets/logo.png')} 
+              style={styles.logoImage}
+              resizeMode="contain"
+            />
+          </View>
           <Text style={styles.title}>Create Account</Text>
           <Text style={styles.subtitle}>
-            Join us for seamless teleconsultation services
+            Join us for seamless TeleClinic365 services
           </Text>
         </View>
 
@@ -269,6 +277,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: theme.spacing.xl,
     marginTop: theme.spacing.lg,
+  },
+  logoBanner: {
+    alignItems: 'center',
+    marginBottom: theme.spacing.lg,
+    paddingVertical: theme.spacing.sm,
+  },
+  logoImage: {
+    width: 280,
+    height: 80,
+    maxWidth: '90%',
   },
   title: {
     ...theme.typography.h1,

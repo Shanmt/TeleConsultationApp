@@ -165,7 +165,13 @@ export const Profile: React.FC<Props> = ({ navigation }) => {
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>Profile</Text>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+          >
+            <Ionicons name="arrow-back" size={24} color={theme.colors.primary} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>My Account</Text>
           <TouchableOpacity onPress={() => Alert.alert('Info', 'Edit profile feature coming soon!')}>
             <Ionicons name="create" size={24} color={theme.colors.primary} />
           </TouchableOpacity>
@@ -229,6 +235,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     padding: theme.spacing.lg,
     backgroundColor: theme.colors.background,
+  },
+  backButton: {
+    padding: theme.spacing.xs,
   },
   headerTitle: {
     ...theme.typography.h3,

@@ -50,8 +50,8 @@ export const ContactUs: React.FC<Props> = ({ navigation }) => {
       subtitle: 'Instant Messaging',
       icon: 'logo-whatsapp',
       action: 'Chat on WhatsApp',
-      value: '+44 7471 575877',
-      onPress: () => Linking.openURL('https://wa.me/447471575877'),
+      value: '+91 9895425112',
+      onPress: () => Linking.openURL('https://wa.me/919895425112'),
     },
     {
       id: '3',
@@ -60,7 +60,7 @@ export const ContactUs: React.FC<Props> = ({ navigation }) => {
       icon: 'card',
       action: 'Pay Now',
       value: '9895425112@ybl',
-      onPress: () => Linking.openURL('upi://pay?pa=9895425112@ybl&pn=Teleconsultation&cu=INR'),
+      onPress: () => Linking.openURL('upi://pay?pa=9895425112@ybl&pn=TeleClinic365&cu=INR'),
     },
     {
       id: '4',
@@ -68,8 +68,8 @@ export const ContactUs: React.FC<Props> = ({ navigation }) => {
       subtitle: 'Response within 24h',
       icon: 'mail',
       action: 'Send Email',
-      value: 'support@teleconsultation.com',
-      onPress: () => Linking.openURL('mailto:support@teleconsultation.com'),
+      value: 'teleclinic365@gmail.com',
+      onPress: () => Linking.openURL('mailto:teleclinic365@gmail.com'),
     },
   ];
 
@@ -82,7 +82,7 @@ export const ContactUs: React.FC<Props> = ({ navigation }) => {
     {
       id: '4',
       question: 'How much does a consultation cost?',
-      answer: "Consultation charges typically range between ₹800 to ₹1500, depending on the nature of the visit and the doctor's specialization. For the most accurate and up-to-date information, it's best to connect with the doctor directly via WhatsApp or phone. They’ll be able to confirm the exact fee and help you schedule an appointment at your convenience.",
+      answer: "Consultation charges typically charged as ₹350 for patients and ₹300 for second opinion for doctors, depending on the nature of the visit and the doctor's specialization. For the most accurate and up-to-date information, it's best to connect with the doctor directly via WhatsApp or phone. They’ll be able to confirm the exact fee and help you schedule an appointment at your convenience.",
     },
   ];
 
@@ -145,7 +145,7 @@ export const ContactUs: React.FC<Props> = ({ navigation }) => {
           >
             <Ionicons name="arrow-back" size={24} color={theme.colors.primary} />
           </TouchableOpacity>
-          <Text style={styles.title}>Contact Us</Text>
+          <Text style={styles.title}>Support Center</Text>
           <View style={styles.placeholder} />
         </View>
 
@@ -263,6 +263,7 @@ const styles = StyleSheet.create({
   title: {
     ...theme.typography.h3,
     color: theme.colors.textPrimary,
+    fontWeight: 'bold',
   },
   placeholder: {
     width: 40,
